@@ -360,6 +360,15 @@
     transition: opacity 0.8s ease;
     animation: sun-spin 12s linear infinite;
   }
+  #snow-ground {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 2;
+  }
+
   #page-sun-rays::before,
   #page-sun-rays::after {
     content: '';
@@ -423,6 +432,7 @@
   }
 </script>
 
+<canvas id="snow-ground" height="220"></canvas>
 <div id="page-sun-rays"></div>
 <div id="page-sun"></div>
 
@@ -846,6 +856,7 @@ function update() {
   kidSpeech.textContent = getKidSpeech(temp);
   updateSnowflakes(temp);
   updatePageSun(temp);
+  updateSnowGround(temp);
 }
 
 const pageSun = document.getElementById('page-sun');
@@ -872,6 +883,82 @@ function updatePageSun(temp) {
   const glowOpacity = (0.2 + t * 0.5).toFixed(2);
   pageSun.style.boxShadow = `0 0 ${glowSize}px ${Math.round(glowSize * 0.6)}px rgba(${r},${g},${b},${glowOpacity})`;
 }
+
+// Snow ground accumulation
+const snowGround = document.getElementById('snow-ground');
+const sgCtx = snowGround.getContext('2d');
+let snowLevel = 0;
+let snowMeltTemp = parseInt(slider.value);
+
+// Fixed mound profile: [x fraction, relative height fraction]
+const MOUND_PTS = [
+  [0.00, 0.55], [0.07, 0.78], [0.14, 1.00], [0.22, 0.84],
+  [0.30, 0.96], [0.38, 0.72], [0.45, 0.90], [0.52, 1.00],
+  [0.60, 0.80], [0.67, 0.88], [0.75, 0.97], [0.82, 0.74],
+  [0.88, 0.85], [0.94, 0.92], [1.00, 0.68],
+];
+
+function resizeSnowGround() {
+  snowGround.width = window.innerWidth;
+  drawSnowGround();
+}
+
+function drawSnowGround() {
+  const w = snowGround.width, h = snowGround.height;
+  sgCtx.clearRect(0, 0, w, h);
+  if (snowLevel < 0.001) return;
+
+  const currentH = h * 0.9 * snowLevel;
+  const points = MOUND_PTS.map(([fx, fy]) => [fx * w, h - fy * currentH]);
+
+  sgCtx.beginPath();
+  sgCtx.moveTo(0, h);
+  sgCtx.lineTo(points[0][0], points[0][1]);
+  for (let i = 0; i < points.length - 1; i++) {
+    const mx = (points[i][0] + points[i + 1][0]) / 2;
+    const my = (points[i][1] + points[i + 1][1]) / 2;
+    sgCtx.quadraticCurveTo(points[i][0], points[i][1], mx, my);
+  }
+  sgCtx.lineTo(w, points[points.length - 1][1]);
+  sgCtx.lineTo(w, h);
+  sgCtx.closePath();
+
+  const grad = sgCtx.createLinearGradient(0, h - currentH, 0, h);
+  grad.addColorStop(0, 'rgba(210, 232, 255, 0.9)');
+  grad.addColorStop(0.5, 'rgba(238, 248, 255, 0.97)');
+  grad.addColorStop(1, '#ffffff');
+  sgCtx.fillStyle = grad;
+  sgCtx.fill();
+}
+
+// Melt rate: full snowpack drains in ~15s at +50°C, proportionally slower closer to 0
+const MELT_PER_FRAME_PER_DEGREE = 1.0 / (15 * 60 * 50);
+
+function snowGroundLoop() {
+  if (snowMeltTemp > 0 && snowLevel > 0) {
+    snowLevel = Math.max(0, snowLevel - MELT_PER_FRAME_PER_DEGREE * snowMeltTemp);
+  }
+  drawSnowGround();
+  requestAnimationFrame(snowGroundLoop);
+}
+
+// Each snowflake that completes a fall adds a small amount to the snowpack
+const FLAKE_ACCUM = 0.004;
+snowflakes.forEach(sf => {
+  sf.addEventListener('animationiteration', () => {
+    if (sf.style.display !== 'none') {
+      snowLevel = Math.min(1, snowLevel + FLAKE_ACCUM);
+    }
+  });
+});
+
+function updateSnowGround(temp) {
+  snowMeltTemp = temp;
+}
+
+resizeSnowGround();
+window.addEventListener('resize', resizeSnowGround);
+requestAnimationFrame(snowGroundLoop);
 
 slider.addEventListener('input', update);
 setTimeout(() => { resizeCanvas(); update(); }, 50);
