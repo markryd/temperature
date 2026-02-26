@@ -433,6 +433,7 @@
 </script>
 
 <canvas id="snow-ground" height="220"></canvas>
+<canvas id="elf-canvas" height="220" style="position:fixed;bottom:0;left:0;width:100%;pointer-events:none;z-index:3;"></canvas>
 <div id="page-sun-rays"></div>
 <div id="page-sun"></div>
 
@@ -959,6 +960,163 @@ function updateSnowGround(temp) {
 resizeSnowGround();
 window.addEventListener('resize', resizeSnowGround);
 requestAnimationFrame(snowGroundLoop);
+
+// Elf skier
+const elfCanvas = document.getElementById('elf-canvas');
+const elfCtx = elfCanvas.getContext('2d');
+let elfActive = false, elfX = 0, elfDir = 1, elfFrame = 0;
+const ELF_SPEED = 3;
+
+function resizeElfCanvas() { elfCanvas.width = window.innerWidth; }
+resizeElfCanvas();
+window.addEventListener('resize', resizeElfCanvas);
+
+function getSnowSurfaceY(xFrac) {
+  if (snowLevel < 0.001) return elfCanvas.height;
+  const h = elfCanvas.height;
+  const currentH = h * 0.9 * snowLevel;
+  const f = Math.max(0, Math.min(1, xFrac));
+  let i = 0;
+  while (i < MOUND_PTS.length - 2 && MOUND_PTS[i + 1][0] <= f) i++;
+  const [x1, h1] = MOUND_PTS[i];
+  const [x2, h2] = MOUND_PTS[Math.min(i + 1, MOUND_PTS.length - 1)];
+  const t = x2 === x1 ? 0 : (f - x1) / (x2 - x1);
+  return h - (h1 + (h2 - h1) * t) * currentH;
+}
+
+function drawElf(x, surfaceY, dir, frame) {
+  elfCtx.clearRect(0, 0, elfCanvas.width, elfCanvas.height);
+  const bob = Math.sin(frame * 0.25) * 2;
+  elfCtx.save();
+  elfCtx.translate(x, surfaceY + bob);
+  if (dir < 0) elfCtx.scale(-0.6, 0.6);
+  else elfCtx.scale(0.6, 0.6);
+
+  // Skis
+  elfCtx.fillStyle = '#6B3A2A';
+  elfCtx.fillRect(-22, -4, 44, 5);
+  elfCtx.beginPath();
+  elfCtx.moveTo(22, -4); elfCtx.quadraticCurveTo(30, -4, 30, 0); elfCtx.lineTo(22, 1);
+  elfCtx.fill();
+
+  // Boots
+  elfCtx.fillStyle = '#1A1A1A';
+  elfCtx.fillRect(-5, -14, 10, 11);
+
+  // Trousers (crouched)
+  elfCtx.fillStyle = '#8B1A1A';
+  elfCtx.beginPath();
+  elfCtx.moveTo(-7, -14);
+  elfCtx.quadraticCurveTo(-10, -22, -3, -30);
+  elfCtx.quadraticCurveTo(2, -22, 7, -14);
+  elfCtx.closePath();
+  elfCtx.fill();
+
+  // Jacket
+  elfCtx.fillStyle = '#1A6B1A';
+  elfCtx.beginPath();
+  elfCtx.ellipse(2, -38, 8, 10, -0.15, 0, Math.PI * 2);
+  elfCtx.fill();
+
+  // Belt buckle
+  elfCtx.fillStyle = '#8B6914';
+  elfCtx.fillRect(-5, -31, 14, 3);
+  elfCtx.fillStyle = '#FFD700';
+  elfCtx.fillRect(1, -32, 5, 5);
+
+  // Head
+  elfCtx.fillStyle = '#F5C5A3';
+  elfCtx.beginPath();
+  elfCtx.arc(4, -50, 9, 0, Math.PI * 2);
+  elfCtx.fill();
+
+  // Rosy cheeks
+  elfCtx.fillStyle = 'rgba(255,120,100,0.35)';
+  elfCtx.beginPath(); elfCtx.arc(0, -49, 3.5, 0, Math.PI * 2); elfCtx.fill();
+  elfCtx.beginPath(); elfCtx.arc(8, -48, 3.5, 0, Math.PI * 2); elfCtx.fill();
+
+  // Eyes
+  elfCtx.fillStyle = '#2A1A0A';
+  elfCtx.beginPath(); elfCtx.arc(1, -52, 1.5, 0, Math.PI * 2); elfCtx.fill();
+  elfCtx.beginPath(); elfCtx.arc(7, -52, 1.5, 0, Math.PI * 2); elfCtx.fill();
+
+  // Smile
+  elfCtx.strokeStyle = '#2A1A0A'; elfCtx.lineWidth = 1.5;
+  elfCtx.beginPath(); elfCtx.arc(4, -49, 3, 0.2, Math.PI - 0.2); elfCtx.stroke();
+
+  // Hat brim
+  elfCtx.fillStyle = '#CC1111';
+  elfCtx.fillRect(-3, -60, 18, 5);
+  // Hat cone
+  elfCtx.fillStyle = '#1A6B1A';
+  elfCtx.beginPath();
+  elfCtx.moveTo(-1, -60); elfCtx.lineTo(15, -60); elfCtx.lineTo(9, -78); elfCtx.closePath();
+  elfCtx.fill();
+  // Hat trim
+  elfCtx.fillStyle = 'rgba(255,255,255,0.6)';
+  elfCtx.fillRect(-3, -62, 18, 3);
+  // Bell
+  elfCtx.fillStyle = '#FFD700';
+  elfCtx.beginPath(); elfCtx.arc(9, -78, 3, 0, Math.PI * 2); elfCtx.fill();
+
+  // Scarf
+  elfCtx.fillStyle = '#DD2222';
+  elfCtx.beginPath();
+  elfCtx.ellipse(4, -43, 8, 4, 0, 0, Math.PI * 2);
+  elfCtx.fill();
+  elfCtx.strokeStyle = '#DD2222'; elfCtx.lineWidth = 5; elfCtx.lineCap = 'round';
+  elfCtx.beginPath(); elfCtx.moveTo(10, -43); elfCtx.lineTo(13, -35); elfCtx.stroke();
+
+  // Arms
+  elfCtx.strokeStyle = '#1A6B1A'; elfCtx.lineWidth = 5;
+  elfCtx.beginPath(); elfCtx.moveTo(8, -42); elfCtx.lineTo(16, -32); elfCtx.stroke();
+  elfCtx.beginPath(); elfCtx.moveTo(-2, -43); elfCtx.lineTo(-10, -33); elfCtx.stroke();
+
+  // Poles
+  elfCtx.strokeStyle = '#999'; elfCtx.lineWidth = 1.5;
+  elfCtx.beginPath(); elfCtx.moveTo(16, -32); elfCtx.lineTo(24, -3); elfCtx.stroke();
+  elfCtx.beginPath(); elfCtx.moveTo(-10, -33); elfCtx.lineTo(-20, -3); elfCtx.stroke();
+  // Pole baskets
+  elfCtx.fillStyle = '#777';
+  elfCtx.beginPath(); elfCtx.arc(24, -3, 3, 0, Math.PI * 2); elfCtx.fill();
+  elfCtx.beginPath(); elfCtx.arc(-20, -3, 3, 0, Math.PI * 2); elfCtx.fill();
+
+  elfCtx.restore();
+}
+
+function elfLoop() {
+  if (elfActive) {
+    elfFrame++;
+    elfX += ELF_SPEED * elfDir;
+    const w = elfCanvas.width;
+    if ((elfDir > 0 && elfX > w + 60) || (elfDir < 0 && elfX < -60)) {
+      elfActive = false;
+      elfCtx.clearRect(0, 0, w, elfCanvas.height);
+      scheduleElf();
+    } else {
+      drawElf(elfX, getSnowSurfaceY(elfX / w), elfDir, elfFrame);
+    }
+  }
+  requestAnimationFrame(elfLoop);
+}
+
+function launchElf() {
+  if (snowLevel < 0.05) { scheduleElf(); return; }
+  elfDir = Math.random() > 0.5 ? 1 : -1;
+  elfX = elfDir > 0 ? -60 : elfCanvas.width + 60;
+  elfFrame = 0;
+  elfActive = true;
+}
+
+function scheduleElf() {
+  setTimeout(() => {
+    if (snowLevel >= 0.05) launchElf();
+    else scheduleElf();
+  }, 20000 + Math.random() * 20000); // 20–40 seconds between runs
+}
+
+scheduleElf();
+requestAnimationFrame(elfLoop);
 
 slider.addEventListener('input', update);
 setTimeout(() => { resizeCanvas(); update(); }, 50);
