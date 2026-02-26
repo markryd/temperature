@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Understanding Positive & Negative Numbers — Weather Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hot: #FF6B35;
+    --warm: #F7C948;
+    --cool: #4ECDC4;
+    --cold: #45B7D1;
+    --freezing: #96C8FB;
+    --ice: #D6EEFF;
+    --negative: #5B86E5;
+    --positive: #FF6B35;
+    --bg: #0F1923;
+    --card-bg: #1A2733;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: #E8F0F8;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .snowflake {
+    position: fixed;
+    color: rgba(255,255,255,0.15);
+    font-size: 1.2rem;
+    top: -20px;
+    animation: snowfall linear infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+  @keyframes snowfall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0.3; }
+  }
+
+  .container {
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 2.2rem;
+    text-align: center;
+    margin-bottom: 0.2rem;
+    background: linear-gradient(135deg, var(--freezing), #fff, var(--hot));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 1rem;
+    color: #8BA4B8;
+    margin-bottom: 2rem;
+    font-weight: 600;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  /* THERMOMETER */
+  .thermo-section { display: flex; flex-direction: column; align-items: center; }
+
+  .thermometer-wrapper {
+    position: relative;
+    width: 100px;
+    height: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .thermo-tube {
+    width: 40px;
+    height: 370px;
+    background: #1E3040;
+    border-radius: 20px 20px 0 0;
+    position: relative;
+    overflow: hidden;
+    border: 3px solid #2A4055;
+  }
+
+  .thermo-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, #FF6B35, #F7C948);
+    transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.8s ease;
+  }
+  .thermo-fill.negative { background: linear-gradient(to top, #5B86E5, #96C8FB); }
+
+  .thermo-bulb {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #FF8C5A, #FF6B35);
+    border: 3px solid #2A4055;
+    margin-top: -6px;
+    transition: background 0.8s ease, box-shadow 0.8s ease;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+  }
+  .thermo-bulb.negative {
+    background: radial-gradient(circle at 35% 35%, #7BA3F0, #5B86E5);
+    box-shadow: 0 0 20px rgba(91, 134, 229, 0.3);
+  }
+
+  .tick-marks {
+    position: absolute;
+    top: 0; left: -50px;
+    width: 46px; height: 370px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 8px 0;
+  }
+  .tick {
+    display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+    font-size: 0.68rem; font-weight: 700; font-family: 'Fredoka', sans-serif; color: #6B8A9E;
+  }
+  .tick::after { content: ''; width: 10px; height: 2px; background: #2A4055; flex-shrink: 0; }
+  .tick.zero { color: #fff; font-size: 0.8rem; }
+  .tick.zero::after { background: rgba(255,255,255,0.5); width: 16px; height: 3px; }
+  .tick.positive { color: var(--positive); }
+  .tick.negative-tick { color: var(--negative); }
+
+  .zero-line {
+    position: absolute; right: -15px; height: 2px;
+    width: calc(100% + 30px); background: rgba(255,255,255,0.15);
+    top: 50%; transform: translateY(-50%); z-index: 2;
+  }
+  .zero-line::after {
+    content: '0°C ZERO'; position: absolute; right: -80px; top: -9px;
+    font-size: 0.6rem; font-family: 'Fredoka', sans-serif;
+    color: rgba(255,255,255,0.5); font-weight: 700; letter-spacing: 1px; white-space: nowrap;
+  }
+
+  /* RIGHT PANEL */
+  .info-panel { display: flex; flex-direction: column; gap: 1.2rem; }
+
+  /* KID + TEMP ROW */
+  .kid-temp-row {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 1.2rem;
+    align-items: stretch;
+  }
+
+  .kid-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    border: 1px solid #2A4055;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.2rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 290px;
+  }
+
+  .kid-svg-wrapper {
+    position: relative;
+    z-index: 1;
+    width: 160px;
+    height: 200px;
+  }
+
+  .kid-speech {
+    position: relative;
+    z-index: 1;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.85rem;
+    color: #fff;
+    background: rgba(0,0,0,0.4);
+    border-radius: 12px;
+    padding: 0.4rem 0.8rem;
+    margin-top: 0.5rem;
+    text-align: center;
+    backdrop-filter: blur(4px);
+    max-width: 200px;
+  }
+
+  .temp-display {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid #2A4055;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .temp-display::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--negative), #fff, var(--positive));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .current-temp {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 4rem; font-weight: 700; line-height: 1;
+    transition: color 0.5s ease;
+  }
+  .current-temp.pos { color: var(--positive); }
+  .current-temp.neg { color: var(--negative); }
+  .current-temp.zero-t { color: #fff; }
+
+  .temp-label { font-size: 0.95rem; color: #8BA4B8; margin-top: 0.3rem; font-weight: 600; }
+
+  .weather-icon {
+    font-size: 2.8rem; margin-bottom: 0.4rem; display: block;
+    animation: bob 3s ease-in-out infinite;
+  }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+  .weather-desc {
+    font-family: 'Fredoka', sans-serif; font-size: 1.05rem;
+    color: #C8D8E8; margin-top: 0.2rem;
+  }
+
+  .slider-section {
+    background: var(--card-bg); border-radius: 20px; padding: 1.2rem 1.5rem;
+    border: 1px solid #2A4055;
+  }
+  .slider-label {
+    font-family: 'Fredoka', sans-serif; font-size: 0.95rem; color: #8BA4B8;
+    margin-bottom: 0.6rem; display: flex; justify-content: space-between;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 12px; border-radius: 6px;
+    background: linear-gradient(90deg, #5B86E5 0%, #5B86E5 50%, #FF6B35 50%, #FF6B35 100%);
+    outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: grab;
+    border: 3px solid var(--card-bg);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 28px; height: 28px; border-radius: 50%; background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: grab; border: 3px solid var(--card-bg);
+  }
+  .slider-ends {
+    display: flex; justify-content: space-between; margin-top: 0.3rem;
+    font-size: 0.78rem; font-weight: 700;
+  }
+  .slider-ends .neg-end { color: var(--negative); }
+  .slider-ends .pos-end { color: var(--positive); }
+
+  .number-line-section {
+    background: var(--card-bg); border-radius: 20px; padding: 1.2rem 1.5rem;
+    border: 1px solid #2A4055;
+  }
+  .number-line-section h3 {
+    font-family: 'Fredoka', sans-serif; font-size: 0.95rem; color: #C8D8E8;
+    margin-bottom: 0.8rem; text-align: center;
+  }
+  .number-line { position: relative; height: 55px; margin: 0 15px; }
+  .nl-track {
+    position: absolute; top: 22px; left: 0; right: 0; height: 4px; border-radius: 2px; overflow: hidden;
+  }
+  .nl-track .neg-half { position: absolute; left: 0; width: 50%; height: 100%; background: var(--negative); opacity: 0.5; }
+  .nl-track .pos-half { position: absolute; right: 0; width: 50%; height: 100%; background: var(--positive); opacity: 0.5; }
+  .nl-numbers {
+    display: flex; justify-content: space-between; position: absolute; top: 0; left: 0; right: 0;
+  }
+  .nl-num {
+    display: flex; flex-direction: column; align-items: center;
+    font-family: 'Fredoka', sans-serif; font-size: 0.75rem; font-weight: 700; width: 28px;
+  }
+  .nl-num .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 3px; background: #2A4055; }
+  .nl-num.neg .dot { background: var(--negative); }
+  .nl-num.pos .dot { background: var(--positive); }
+  .nl-num.zero-num .dot { background: #fff; width: 13px; height: 13px; margin-top: 1px; }
+  .nl-num.neg { color: var(--negative); }
+  .nl-num.pos { color: var(--positive); }
+  .nl-num.zero-num { color: #fff; font-size: 0.9rem; }
+  .nl-marker {
+    position: absolute; top: 32px; width: 2px; height: 18px; background: #fff;
+    transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+  }
+  .nl-marker::after {
+    content: '▲'; position: absolute; top: -14px; left: -6px; font-size: 0.75rem; color: #fff;
+  }
+
+  .concept-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .concept-card {
+    background: var(--card-bg); border-radius: 16px; padding: 1.2rem;
+    border: 1px solid #2A4055; transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .concept-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+  .concept-card.positive-card { border-left: 4px solid var(--positive); }
+  .concept-card.negative-card { border-left: 4px solid var(--negative); }
+  .concept-card h3 { font-family: 'Fredoka', sans-serif; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .positive-card h3 { color: var(--positive); }
+  .negative-card h3 { color: var(--negative); }
+  .concept-card p { font-size: 0.82rem; line-height: 1.5; color: #8BA4B8; }
+  .concept-card .examples { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .example-tag {
+    display: inline-block; padding: 0.18rem 0.55rem; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 700; font-family: 'Fredoka', sans-serif;
+  }
+  .positive-card .example-tag { background: rgba(255, 107, 53, 0.15); color: var(--positive); }
+  .negative-card .example-tag { background: rgba(91, 134, 229, 0.15); color: var(--negative); }
+
+  .key-insight {
+    background: linear-gradient(135deg, rgba(91, 134, 229, 0.1), rgba(255, 107, 53, 0.1));
+    border-radius: 16px; padding: 1rem 1.3rem; border: 1px solid #2A4055; text-align: center;
+  }
+  .key-insight .bulb { font-size: 1.3rem; margin-bottom: 0.2rem; display: block; }
+  .key-insight p { font-size: 0.85rem; line-height: 1.6; color: #C8D8E8; }
+  .key-insight strong { color: #fff; }
+
+  @keyframes shiver {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px) rotate(-1deg); }
+    75% { transform: translateX(2px) rotate(1deg); }
+  }
+  .shivering { animation: shiver 0.15s ease-in-out infinite; }
+
+  @media (max-width: 850px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .thermo-section { order: -1; }
+    .thermometer-wrapper { height: 300px; }
+    .thermo-tube { height: 240px; }
+    .kid-temp-row { grid-template-columns: 1fr; }
+    h1 { font-size: 1.7rem; }
+    .concept-cards { grid-template-columns: 1fr; }
+    .current-temp { font-size: 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<script>
+  // Create a pool of snowflakes (hidden by default)
+  const MAX_SNOWFLAKES = 60;
+  const snowflakes = [];
+  for (let i = 0; i < MAX_SNOWFLAKES; i++) {
+    const sf = document.createElement('div');
+    sf.className = 'snowflake';
+    sf.textContent = '❄';
+    sf.style.left = Math.random() * 100 + '%';
+    sf.style.animationDuration = (3 + Math.random() * 6) + 's';
+    sf.style.animationDelay = Math.random() * 8 + 's';
+    sf.style.fontSize = (0.5 + Math.random() * 1.2) + 'rem';
+    sf.style.display = 'none';
+    document.body.appendChild(sf);
+    snowflakes.push(sf);
+  }
+
+  function updateSnowflakes(temp) {
+    // No snow above 0; scales from 0 at 0° to MAX at -50°
+    let count = 0;
+    if (temp < 0) {
+      const intensity = Math.min(1, Math.abs(temp) / 50);
+      count = Math.round(intensity * MAX_SNOWFLAKES);
+    }
+    // Also increase opacity with colder temps
+    const opacity = temp < 0 ? 0.08 + Math.min(0.35, Math.abs(temp) / 50 * 0.35) : 0;
+    for (let i = 0; i < MAX_SNOWFLAKES; i++) {
+      if (i < count) {
+        snowflakes[i].style.display = 'block';
+        snowflakes[i].style.color = `rgba(255,255,255,${opacity})`;
+      } else {
+        snowflakes[i].style.display = 'none';
+      }
+    }
+  }
+</script>
+
+<div class="container">
+  <h1>🌡️ Positive & Negative Numbers</h1>
+  <p class="subtitle">Drag the slider to change the temperature — watch the kid react!</p>
+
+  <div class="main-grid">
+    <div class="thermo-section">
+      <div class="thermometer-wrapper">
+        <div class="tick-marks">
+          <div class="tick positive">50°</div>
+          <div class="tick positive">40°</div>
+          <div class="tick positive">30°</div>
+          <div class="tick positive">20°</div>
+          <div class="tick positive">10°</div>
+          <div class="tick zero">0°</div>
+          <div class="tick negative-tick">-10°</div>
+          <div class="tick negative-tick">-20°</div>
+          <div class="tick negative-tick">-30°</div>
+          <div class="tick negative-tick">-40°</div>
+          <div class="tick negative-tick">-50°</div>
+        </div>
+        <div class="zero-line"></div>
+        <div class="thermo-tube">
+          <div class="thermo-fill" id="thermoFill"></div>
+        </div>
+        <div class="thermo-bulb" id="thermoBulb"></div>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <div class="kid-temp-row">
+        <div class="kid-card" id="kidCard">
+          <canvas id="sceneBg" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;border-radius:20px;"></canvas>
+          <div class="kid-svg-wrapper" id="kidWrapper">
+            <svg id="kidSvg" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;"></svg>
+          </div>
+          <div class="kid-speech" id="kidSpeech">I feel great!</div>
+        </div>
+
+        <div class="temp-display">
+          <span class="weather-icon" id="weatherIcon">☀️</span>
+          <div class="current-temp pos" id="currentTemp">+25°C</div>
+          <div class="temp-label" id="tempLabel">Above zero — warm!</div>
+          <div class="weather-desc" id="weatherDesc">Perfect beach weather</div>
+        </div>
+      </div>
+
+      <div class="slider-section">
+        <div class="slider-label">
+          <span>🧊 Colder</span>
+          <span>Warmer 🔥</span>
+        </div>
+        <input type="range" id="tempSlider" min="-50" max="50" value="25" step="1">
+        <div class="slider-ends">
+          <span class="neg-end">-50°C</span>
+          <span class="pos-end">+50°C</span>
+        </div>
+      </div>
+
+      <div class="number-line-section">
+        <h3>📏 The Number Line</h3>
+        <div class="number-line">
+          <div class="nl-track">
+            <div class="neg-half"></div>
+            <div class="pos-half"></div>
+          </div>
+          <div class="nl-numbers">
+            <div class="nl-num neg">-50<div class="dot"></div></div>
+            <div class="nl-num neg">-40<div class="dot"></div></div>
+            <div class="nl-num neg">-30<div class="dot"></div></div>
+            <div class="nl-num neg">-20<div class="dot"></div></div>
+            <div class="nl-num neg">-10<div class="dot"></div></div>
+            <div class="nl-num zero-num">0<div class="dot"></div></div>
+            <div class="nl-num pos">10<div class="dot"></div></div>
+            <div class="nl-num pos">20<div class="dot"></div></div>
+            <div class="nl-num pos">30<div class="dot"></div></div>
+            <div class="nl-num pos">40<div class="dot"></div></div>
+            <div class="nl-num pos">50<div class="dot"></div></div>
+          </div>
+          <div class="nl-marker" id="nlMarker"></div>
+        </div>
+      </div>
+
+      <div class="concept-cards">
+        <div class="concept-card positive-card">
+          <h3>☀️ Positive Numbers (+)</h3>
+          <p>Numbers <strong>above zero</strong>. On a thermometer, these are <strong>above the freezing point</strong> — it's warm!</p>
+          <div class="examples">
+            <span class="example-tag">+10°C Spring</span>
+            <span class="example-tag">+25°C Summer</span>
+            <span class="example-tag">+40°C Desert</span>
+          </div>
+        </div>
+        <div class="concept-card negative-card">
+          <h3>❄️ Negative Numbers (−)</h3>
+          <p>Numbers <strong>below zero</strong>. On a thermometer, these mean it's <strong>below freezing</strong> — brrr!</p>
+          <div class="examples">
+            <span class="example-tag">-5°C Frost</span>
+            <span class="example-tag">-20°C Snowstorm</span>
+            <span class="example-tag">-40°C Arctic</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="key-insight">
+        <span class="bulb">💡</span>
+        <p><strong>Key Idea:</strong> Zero is the middle point! Positive numbers go up (warmer), negative numbers go down (colder). The further from zero, the bigger the number — whether it's <strong style="color:var(--positive)">+40</strong> or <strong style="color:var(--negative)">−40</strong>, both are 40 away from zero!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const slider = document.getElementById('tempSlider');
+const thermoFill = document.getElementById('thermoFill');
+const thermoBulb = document.getElementById('thermoBulb');
+const currentTemp = document.getElementById('currentTemp');
+const tempLabel = document.getElementById('tempLabel');
+const weatherIcon = document.getElementById('weatherIcon');
+const weatherDesc = document.getElementById('weatherDesc');
+const nlMarker = document.getElementById('nlMarker');
+const kidSvg = document.getElementById('kidSvg');
+const kidSpeech = document.getElementById('kidSpeech');
+const kidWrapper = document.getElementById('kidWrapper');
+const sceneBg = document.getElementById('sceneBg');
+const ctx = sceneBg.getContext('2d');
+
+function resizeCanvas() {
+  sceneBg.width = sceneBg.offsetWidth * 2;
+  sceneBg.height = sceneBg.offsetHeight * 2;
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); update(); });
+
+function lerpColor(a, b, t) {
+  const parse = c => { const h = parseInt(c.replace('#',''),16); return [(h>>16)&0xFF,(h>>8)&0xFF,h&0xFF]; };
+  const [ar,ag,ab] = parse(a), [br,bg_,bb] = parse(b);
+  return `rgb(${Math.round(ar+(br-ar)*t)},${Math.round(ag+(bg_-ag)*t)},${Math.round(ab+(bb-ab)*t)})`;
+}
+
+function drawScene(temp) {
+  const w = sceneBg.offsetWidth, h = sceneBg.offsetHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  let skyTop, skyBot;
+  if (temp <= -30) { skyTop = '#0B1628'; skyBot = '#1A2E4A'; }
+  else if (temp <= -10) { skyTop = '#152A4A'; skyBot = '#2A4A6B'; }
+  else if (temp <= 0) { skyTop = '#1E3A5F'; skyBot = '#4A7A9B'; }
+  else if (temp <= 15) { skyTop = '#2E6090'; skyBot = '#7CB8D8'; }
+  else if (temp <= 30) { skyTop = '#1E70B0'; skyBot = '#87CEEB'; }
+  else { skyTop = '#D4520A'; skyBot = '#FFA040'; }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, skyTop);
+  grad.addColorStop(1, skyBot);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Ground
+  ctx.fillStyle = temp <= 0 ? '#D6EEFF' : temp > 35 ? '#C4943A' : '#4CAF50';
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.82);
+  ctx.quadraticCurveTo(w * 0.3, h * 0.78, w * 0.5, h * 0.82);
+  ctx.quadraticCurveTo(w * 0.7, h * 0.86, w, h * 0.80);
+  ctx.lineTo(w, h); ctx.lineTo(0, h);
+  ctx.fill();
+
+  // Sun when hot
+  if (temp > 15) {
+    const sunR = 14 + Math.max(0, (temp - 15) * 0.4);
+    ctx.fillStyle = '#FFD93D';
+    ctx.beginPath(); ctx.arc(w * 0.82, h * 0.14, sunR, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,217,61,0.12)';
+    ctx.beginPath(); ctx.arc(w * 0.82, h * 0.14, sunR + 15, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Snow dots when cold
+  if (temp <= -5) {
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    const count = Math.min(20, Math.floor((-5 - temp) / 2));
+    for (let i = 0; i < count; i++) {
+      ctx.beginPath();
+      ctx.arc(((i * 37 + 13) % w), ((i * 53 + 7) % (h * 0.75)), 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawKid(temp) {
+  let skinColor = '#FFBB88';
+  if (temp > 30) skinColor = lerpColor('#FFBB88', '#FF8866', Math.min(1, (temp - 30) / 20));
+  else if (temp < -20) skinColor = lerpColor('#FFBB88', '#DDAAAA', Math.min(1, (-20 - temp) / 30));
+
+  let bodyColor, hatColor = '#E53935', scarfColor = '#FFD54F';
+  let hairColor = '#5D4037', pantsColor = temp < 5 ? '#37474F' : '#1565C0', shoeColor = '#4E342E';
+
+  if (temp < -20) bodyColor = '#3A5C8A';
+  else if (temp < 0) bodyColor = '#4A7AB5';
+  else if (temp < 10) bodyColor = '#5A9AD5';
+  else if (temp < 25) bodyColor = '#4CAF50';
+  else if (temp < 35) bodyColor = '#FF9800';
+  else bodyColor = '#F44336';
+
+  let hatOn = temp < 5, scarfOn = temp < 0;
+
+  // Mouth
+  let mouthPath;
+  if (temp <= -30) mouthPath = 'M 70,118 Q 80,112 90,118';
+  else if (temp <= -10) mouthPath = 'M 72,116 Q 80,113 88,116';
+  else if (temp <= 5) mouthPath = 'M 73,115 L 87,115';
+  else if (temp <= 30) mouthPath = 'M 70,113 Q 80,122 90,113';
+  else if (temp <= 40) mouthPath = 'M 68,112 Q 80,125 92,112';
+  else mouthPath = 'M 66,110 Q 80,128 94,110';
+
+  let eyeH = temp <= -30 ? 2 : temp <= 0 ? 3 : temp <= 35 ? 4 : 5;
+
+  // Arms
+  let leftArm, rightArm, lHandX, lHandY, rHandX, rHandY;
+  if (temp <= -10) {
+    leftArm = 'M 60,100 Q 50,108 62,118';
+    rightArm = 'M 100,100 Q 110,108 98,118';
+    lHandX = 62; lHandY = 118; rHandX = 98; rHandY = 118;
+  } else if (temp >= 35) {
+    leftArm = 'M 58,95 Q 38,82 30,92';
+    rightArm = 'M 102,95 Q 122,82 130,92';
+    lHandX = 30; lHandY = 92; rHandX = 130; rHandY = 92;
+  } else {
+    leftArm = 'M 58,95 Q 48,115 45,135';
+    rightArm = 'M 102,95 Q 112,115 115,135';
+    lHandX = 45; lHandY = 135; rHandX = 115; rHandY = 135;
+  }
+
+  let svg = '';
+
+  // Shadow
+  svg += `<ellipse cx="80" cy="185" rx="28" ry="5" fill="rgba(0,0,0,0.15)"/>`;
+
+  // Legs
+  svg += `<rect x="68" y="148" width="12" height="30" rx="5" fill="${pantsColor}"/>`;
+  svg += `<rect x="82" y="148" width="12" height="30" rx="5" fill="${pantsColor}"/>`;
+  svg += `<ellipse cx="74" cy="180" rx="10" ry="5" fill="${shoeColor}"/>`;
+  svg += `<ellipse cx="88" cy="180" rx="10" ry="5" fill="${shoeColor}"/>`;
+
+  // Body
+  svg += `<rect x="58" y="88" width="44" height="62" rx="12" fill="${bodyColor}"/>`;
+
+  // Coat details when cold
+  if (temp < 0) {
+    svg += `<line x1="80" y1="90" x2="80" y2="148" stroke="rgba(0,0,0,0.1)" stroke-width="2"/>`;
+    // Buttons
+    svg += `<circle cx="80" cy="105" r="2.5" fill="rgba(255,255,255,0.4)"/>`;
+    svg += `<circle cx="80" cy="120" r="2.5" fill="rgba(255,255,255,0.4)"/>`;
+    svg += `<circle cx="80" cy="135" r="2.5" fill="rgba(255,255,255,0.4)"/>`;
+  }
+
+  // Arms
+  svg += `<path d="${leftArm}" stroke="${bodyColor}" stroke-width="10" stroke-linecap="round" fill="none"/>`;
+  svg += `<path d="${rightArm}" stroke="${bodyColor}" stroke-width="10" stroke-linecap="round" fill="none"/>`;
+
+  // Hands
+  let handColor = temp < -20 ? '#5C6BC0' : skinColor;
+  svg += `<circle cx="${lHandX}" cy="${lHandY}" r="6" fill="${handColor}"/>`;
+  svg += `<circle cx="${rHandX}" cy="${rHandY}" r="6" fill="${handColor}"/>`;
+
+  // Scarf
+  if (scarfOn) {
+    svg += `<ellipse cx="80" cy="84" rx="22" ry="8" fill="${scarfColor}"/>`;
+    svg += `<rect x="90" y="82" width="8" height="22" rx="3" fill="${scarfColor}"/>`;
+    svg += `<rect x="88" y="100" width="12" height="5" rx="2" fill="${scarfColor}" opacity="0.7"/>`;
+  }
+
+  // Head
+  svg += `<circle cx="80" cy="60" r="28" fill="${skinColor}"/>`;
+
+  // Hair
+  svg += `<path d="M 52,55 Q 52,30 80,28 Q 108,30 108,55" fill="${hairColor}"/>`;
+  svg += `<path d="M 54,50 Q 48,42 55,38" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  svg += `<path d="M 106,50 Q 112,42 105,38" stroke="${hairColor}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+
+  // Hat
+  if (hatOn) {
+    svg += `<path d="M 52,52 Q 52,25 80,22 Q 108,25 108,52" fill="${hatColor}"/>`;
+    svg += `<rect x="48" y="49" width="64" height="8" rx="4" fill="${hatColor}" opacity="0.85"/>`;
+    svg += `<circle cx="80" cy="20" r="6" fill="#fff"/>`;
+  }
+
+  // Ears (visible when no hat)
+  if (!hatOn) {
+    svg += `<circle cx="52" cy="60" r="5" fill="${skinColor}"/>`;
+    svg += `<circle cx="108" cy="60" r="5" fill="${skinColor}"/>`;
+  }
+
+  // Eyes
+  if (temp <= -35) {
+    // Spiral/dizzy eyes
+    svg += `<circle cx="71" cy="58" r="5" fill="none" stroke="#333" stroke-width="1.5"/>`;
+    svg += `<circle cx="71" cy="58" r="2" fill="#333"/>`;
+    svg += `<circle cx="89" cy="58" r="5" fill="none" stroke="#333" stroke-width="1.5"/>`;
+    svg += `<circle cx="89" cy="58" r="2" fill="#333"/>`;
+  } else {
+    svg += `<ellipse cx="71" cy="58" rx="4" ry="${eyeH}" fill="#333"/>`;
+    svg += `<ellipse cx="89" cy="58" rx="4" ry="${eyeH}" fill="#333"/>`;
+    svg += `<circle cx="72" cy="${58 - eyeH + 2}" r="1.5" fill="#fff"/>`;
+    svg += `<circle cx="90" cy="${58 - eyeH + 2}" r="1.5" fill="#fff"/>`;
+  }
+
+  // Eyebrows
+  if (temp <= -20) {
+    svg += `<line x1="65" y1="48" x2="77" y2="51" stroke="${hairColor}" stroke-width="2.5" stroke-linecap="round"/>`;
+    svg += `<line x1="83" y1="51" x2="95" y2="48" stroke="${hairColor}" stroke-width="2.5" stroke-linecap="round"/>`;
+  } else if (temp >= 35) {
+    svg += `<line x1="65" y1="51" x2="77" y2="48" stroke="${hairColor}" stroke-width="2.5" stroke-linecap="round"/>`;
+    svg += `<line x1="83" y1="48" x2="95" y2="51" stroke="${hairColor}" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+
+  // Cheek blush
+  if (temp <= -5 || temp >= 28) {
+    const op = temp <= -5 ? Math.min(0.45, (-5 - temp) / 40 + 0.12) : Math.min(0.45, (temp - 28) / 18 + 0.12);
+    const col = temp <= -5 ? `rgba(180,100,100,${op})` : `rgba(255,100,80,${op})`;
+    svg += `<circle cx="61" cy="68" r="7" fill="${col}"/>`;
+    svg += `<circle cx="99" cy="68" r="7" fill="${col}"/>`;
+  }
+
+  // Mouth
+  svg += `<path d="${mouthPath}" stroke="#333" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+  if (temp >= 35) {
+    svg += `<path d="${mouthPath}" stroke="none" fill="#C62828" opacity="0.35"/>`;
+    // Tongue sticking out
+    svg += `<ellipse cx="80" cy="${temp >= 40 ? 122 : 120}" rx="5" ry="4" fill="#E57373"/>`;
+  }
+
+  // Sweat drops when hot
+  if (temp >= 30) {
+    const drops = Math.min(4, Math.floor((temp - 28) / 5));
+    for (let i = 0; i < drops; i++) {
+      const dx = 48 + i * 24, delay = i * 0.35;
+      svg += `<ellipse cx="${dx}" cy="40" rx="2.5" ry="4" fill="#4FC3F7" opacity="0.8">
+        <animate attributeName="cy" from="40" to="78" dur="1s" begin="${delay}s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.8" to="0" dur="1s" begin="${delay}s" repeatCount="indefinite"/>
+      </ellipse>`;
+    }
+  }
+
+  // Breath cloud when cold
+  if (temp <= -5) {
+    const op = Math.min(0.55, (-5 - temp) / 25 + 0.1);
+    svg += `<ellipse cx="115" cy="72" rx="11" ry="6" fill="rgba(255,255,255,${op})">
+      <animate attributeName="cx" from="110" to="138" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="${op}" to="0" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="ry" from="6" to="9" dur="2s" repeatCount="indefinite"/>
+    </ellipse>`;
+    svg += `<ellipse cx="120" cy="67" rx="7" ry="4" fill="rgba(255,255,255,${op * 0.6})">
+      <animate attributeName="cx" from="118" to="142" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="${op * 0.6}" to="0" dur="2.5s" repeatCount="indefinite"/>
+    </ellipse>`;
+  }
+
+  // Icicles hanging from hat when very cold
+  if (temp <= -25 && hatOn) {
+    for (let i = 0; i < 4; i++) {
+      const ix = 56 + i * 15;
+      const ih = 4 + Math.min(8, (-25 - temp) / 3);
+      svg += `<path d="M ${ix},57 L ${ix+2},${57+ih} L ${ix+4},57" fill="rgba(150,200,251,0.7)"/>`;
+    }
+  }
+
+  kidSvg.innerHTML = svg;
+  kidWrapper.classList.toggle('shivering', temp <= -10);
+}
+
+function getWeatherData(temp) {
+  if (temp >= 40) return { icon: '🔥', desc: 'Scorching hot — stay hydrated!', label: 'Way above zero — extreme heat!' };
+  if (temp >= 30) return { icon: '☀️', desc: 'Hot summer day!', label: 'Way above zero — very hot!' };
+  if (temp >= 20) return { icon: '🌤️', desc: 'Perfect beach weather', label: 'Above zero — warm!' };
+  if (temp >= 10) return { icon: '⛅', desc: 'Nice and mild', label: 'Above zero — pleasant' };
+  if (temp >= 5) return { icon: '🧥', desc: 'Grab a jacket!', label: 'Above zero — cool' };
+  if (temp > 0) return { icon: '🌧️', desc: 'Chilly and damp', label: 'Just above zero — cold!' };
+  if (temp === 0) return { icon: '🧊', desc: 'Freezing point — water becomes ice!', label: 'Zero — the freezing point!' };
+  if (temp >= -10) return { icon: '❄️', desc: 'Below freezing — watch for ice!', label: 'Below zero — freezing!' };
+  if (temp >= -20) return { icon: '🌨️', desc: 'Very cold — snow is likely!', label: 'Well below zero — very cold!' };
+  if (temp >= -35) return { icon: '☃️', desc: 'Dangerously cold!', label: 'Far below zero — extreme cold!' };
+  return { icon: '🥶', desc: 'Arctic conditions!', label: 'Extremely below zero!' };
+}
+
+function getKidSpeech(temp) {
+  if (temp >= 45) return "I'M MELTING! 🫠";
+  if (temp >= 35) return "Sooo hot... need water! 💦";
+  if (temp >= 25) return "Love this weather! 😎";
+  if (temp >= 15) return "I feel great! 😊";
+  if (temp >= 5) return "A bit chilly... 🤔";
+  if (temp > 0) return "Getting cold! Need a coat!";
+  if (temp === 0) return "Freezing point! Ice time! 🧊";
+  if (temp >= -10) return "Brrr! Below zero! ❄️";
+  if (temp >= -25) return "SO COLD! Can't feel my nose! 🥶";
+  if (temp >= -40) return "Help! Turning into an icicle! 🧊";
+  return "Is this the North Pole?! 🐧";
+}
+
+function update() {
+  const temp = parseInt(slider.value);
+  const data = getWeatherData(temp);
+
+  thermoFill.style.height = ((temp + 50) / 100) * 100 + '%';
+  thermoFill.className = 'thermo-fill' + (temp < 0 ? ' negative' : '');
+  thermoBulb.className = 'thermo-bulb' + (temp < 0 ? ' negative' : '');
+
+  const sign = temp > 0 ? '+' : '';
+  currentTemp.textContent = sign + temp + '°C';
+  currentTemp.className = 'current-temp ' + (temp > 0 ? 'pos' : temp < 0 ? 'neg' : 'zero-t');
+
+  weatherIcon.textContent = data.icon;
+  tempLabel.textContent = data.label;
+  weatherDesc.textContent = data.desc;
+  nlMarker.style.left = `calc(${((temp + 50) / 100) * 100}% - 1px)`;
+
+  drawScene(temp);
+  drawKid(temp);
+  kidSpeech.textContent = getKidSpeech(temp);
+  updateSnowflakes(temp);
+}
+
+slider.addEventListener('input', update);
+setTimeout(() => { resizeCanvas(); update(); }, 50);
+</script>
+
+</body>
+</html>
