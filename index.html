@@ -331,6 +331,47 @@
   }
   .shivering { animation: shiver 0.15s ease-in-out infinite; }
 
+  #page-sun {
+    position: fixed;
+    top: -60px;
+    right: -60px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #FFF176, #FFD600);
+    opacity: 0;
+    transition: opacity 0.8s ease, box-shadow 0.8s ease, background 0.8s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes sun-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  #page-sun-rays {
+    position: fixed;
+    top: -90px;
+    right: -90px;
+    width: 220px;
+    height: 220px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.8s ease;
+    animation: sun-spin 12s linear infinite;
+  }
+  #page-sun-rays::before,
+  #page-sun-rays::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: repeating-conic-gradient(
+      rgba(255, 220, 50, 0.25) 0deg 20deg,
+      transparent 20deg 40deg
+    );
+  }
+
   @media (max-width: 850px) {
     .main-grid { grid-template-columns: 1fr; }
     .thermo-section { order: -1; }
@@ -381,6 +422,9 @@
     }
   }
 </script>
+
+<div id="page-sun-rays"></div>
+<div id="page-sun"></div>
 
 <div class="container">
   <h1>🌡️ Positive & Negative Numbers</h1>
@@ -801,6 +845,32 @@ function update() {
   drawKid(temp);
   kidSpeech.textContent = getKidSpeech(temp);
   updateSnowflakes(temp);
+  updatePageSun(temp);
+}
+
+const pageSun = document.getElementById('page-sun');
+const pageSunRays = document.getElementById('page-sun-rays');
+
+function updatePageSun(temp) {
+  if (temp <= 0) {
+    pageSun.style.opacity = '0';
+    pageSunRays.style.opacity = '0';
+    return;
+  }
+  const t = Math.min(1, temp / 50);
+  pageSun.style.opacity = (0.4 + t * 0.6).toFixed(2);
+  pageSunRays.style.opacity = (0.3 + t * 0.5).toFixed(2);
+
+  // Shift from pale yellow to deep orange-red as it gets hotter
+  const r = Math.round(255);
+  const g = Math.round(230 - t * 130);
+  const b = Math.round(50 - t * 50);
+  pageSun.style.background = `radial-gradient(circle at 40% 40%, #FFF9C4, rgb(${r},${g},${b}))`;
+
+  // Glow intensifies with heat
+  const glowSize = Math.round(20 + t * 80);
+  const glowOpacity = (0.2 + t * 0.5).toFixed(2);
+  pageSun.style.boxShadow = `0 0 ${glowSize}px ${Math.round(glowSize * 0.6)}px rgba(${r},${g},${b},${glowOpacity})`;
 }
 
 slider.addEventListener('input', update);
